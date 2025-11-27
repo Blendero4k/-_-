@@ -1,0 +1,360 @@
+Задание 1: Создание базы данных и простой таблицы
+
+Шаги действий:
+
+1. Откройте SQL Server Management Studio (SSMS)
+2. Создайте новую базу данных "University":
+CREATE DATABASE University;
+GO
+
+USE University;
+GO
+
+CREATE TABLE Students (
+    StudentID int PRIMARY KEY IDENTITY(1,1),
+    FirstName nvarchar(50) NOT NULL,
+    LastName nvarchar(50) NOT NULL,
+    BirthDate date,
+    Email nvarchar(100)
+);
+
+Что должно получиться:
+
+· Новая база данных University
+· Таблица Students с основными полями
+· Возможность добавлять записи через SSMS
+
+---
+
+Задание 2: Создание консольного приложения с подключением к БД
+
+Шаги действий:
+
+1. В Visual Studio создайте новый проект "Console App"
+2. Добавьте NuGet пакет: System.Data.SqlClient
+3. Напишите код подключения:
+using System.Data.SqlClient;
+
+string connectionString = "Server=localhost;Database=University;Trusted_Connection=true;";
+using (SqlConnection connection = new SqlConnection(connectionString))
+{
+    connection.Open();
+    Console.WriteLine("Подключение к базе данных успешно!");
+}
+
+Что должно получиться:
+
+· Консольное приложение, которое подключается к SQL Server
+· Успешное сообщение о подключении
+· Понимание строки подключения
+
+---
+
+Задание 3: Реализация CRUD операций для таблицы Students
+
+Шаги действий:
+
+1. Добавьте методы в консольное приложение:
+// CREATE
+public static void AddStudent(string firstName, string lastName)
+{
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        string query = "INSERT INTO Students (FirstName, LastName) VALUES (@FirstName, @LastName)";
+        SqlCommand command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@FirstName", firstName);
+        command.Parameters.AddWithValue("@LastName", lastName);
+        
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+}
+
+// READ
+public static void DisplayStudents()
+{
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        string query = "SELECT * FROM Students";
+        SqlCommand command = new SqlCommand(query, connection);
+        
+        connection.Open();
+        SqlDataReader reader = command.ExecuteReader();
+        
+        while (reader.Read())
+        {
+            Console.WriteLine($"ID: {reader["StudentID"]}, Name: {reader["FirstName"]} {reader["LastName"]}");
+        }
+    }
+}
+
+Что должно получиться:
+
+· Возможность добавлять новых студентов
+· Просмотр списка всех студентов
+· Базовое понимание параметризованных запросов
+
+---
+
+Задание 4: Создание Windows Forms приложения с DataGridView
+
+Шаги действий:
+
+1. Создайте новый проект "Windows Forms App"
+2. Добавьте на форму DataGridView и кнопку "Load Data"
+3. Напишите код загрузки данных:
+private void btnLoadData_Click(object sender, EventArgs e)
+{
+    string connectionString = "Server=localhost;Database=University;Trusted_Connection=true;";
+    
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        string query = "SELECT StudentID, FirstName, LastName, Email FROM Students";
+        SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+        DataTable dataTable = new DataTable();
+        
+        adapter.Fill(dataTable);
+        dataGridView1.DataSource = dataTable;
+    }
+}
+
+Что должно получиться:
+
+· Windows Forms приложение с таблицей студентов
+· Кнопка для загрузки данных из БД
+· Отображение данных в DataGridView
+
+---
+
+Задание 5: Добавление поиска и фильтрации
+
+Шаги действий:
+
+1. Добавьте TextBox и кнопку "Search" на форму
+2. Реализуйте поиск по фамилии:
+private void btnSearch_Click(object sender, EventArgs e)
+{
+    string searchName = txtSearch.Text;
+    
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        string query = "SELECT * FROM Students WHERE LastName LIKE @SearchName";
+        SqlCommand command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@SearchName", "%" + searchName + "%");
+08:35
+SqlDataAdapter adapter = new SqlDataAdapter(command);
+        DataTable dataTable = new DataTable();
+        
+        adapter.
+
+Fill(dataTable);
+        dataGridView1.DataSource = dataTable;
+    }
+}
+
+Что должно получиться:
+
+· Поиск студентов по фамилии
+· Использование LIKE для нечеткого поиска
+· Динамическое обновление DataGridView
+
+---
+
+Задание 6: Создание хранимой процедуры
+
+Шаги действий:
+
+1. В SSMS создайте хранимую процедуру:
+CREATE PROCEDURE GetStudentsByBirthYear
+    @Year int
+AS
+BEGIN
+    SELECT * FROM Students 
+    WHERE YEAR(BirthDate) = @Year
+END
+
+1. Вызовите процедуру из C# кода:
+using (SqlConnection connection = new SqlConnection(connectionString))
+{
+    SqlCommand command = new SqlCommand("GetStudentsByBirthYear", connection);
+    command.CommandType = CommandType.StoredProcedure;
+    command.Parameters.AddWithValue("@Year", 2000);
+    
+    connection.Open();
+    SqlDataReader reader = command.ExecuteReader();
+    
+    // Обработка результатов
+}
+
+Что должно получиться:
+
+· Хранимая процедура в базе данных
+· Вызов процедуры из C# кода
+· Передача параметров в процедуру
+
+---
+
+Задание 7: Добавление таблицы Courses и связи
+
+Шаги действий:
+
+1. Создайте таблицу Courses и связь:
+CREATE TABLE Courses (
+    CourseID int PRIMARY KEY IDENTITY(1,1),
+    CourseName nvarchar(100) NOT NULL,
+    Credits int NOT NULL
+);
+
+CREATE TABLE StudentCourses (
+    StudentID int FOREIGN KEY REFERENCES Students(StudentID),
+    CourseID int FOREIGN KEY REFERENCES Courses(CourseID),
+    PRIMARY KEY (StudentID, CourseID)
+);
+
+1. Добавьте тестовые данные
+2. Создайте запрос для отображения студентов с курсами
+
+Что должно получиться:
+
+· Нормализованная структура базы данных
+· Связь многие-ко-многим между студентами и курсами
+· Понимание FOREIGN KEY constraints
+
+---
+
+Задание 8: Создание отчета с группировкой
+
+Шаги действий:
+
+1. Напишите SQL запрос с GROUP BY:
+SELECT 
+    c.CourseName,
+    COUNT(sc.StudentID) as StudentCount
+FROM Courses c
+LEFT JOIN StudentCourses sc ON c.CourseID = sc.CourseID
+GROUP BY c.CourseName
+ORDER BY StudentCount DESC;
+
+1. Реализуйте отображение в приложении:
+private void LoadCourseReport()
+{
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        string query = @"SELECT c.CourseName, COUNT(sc.StudentID) as StudentCount
+                        FROM Courses c
+                        LEFT JOIN StudentCourses sc ON c.CourseID = sc.CourseID
+                        GROUP BY c.CourseName
+                        ORDER BY StudentCount DESC";
+        
+        SqlDataAdapter adapter = new SqlDataAdapter(query, connection);
+        DataTable dataTable = new DataTable();
+        
+        adapter.Fill(dataTable);
+        dataGridView1.DataSource = dataTable;
+    }
+}
+
+Что должно получиться:
+
+· Отчет по количеству студентов на каждом курсе
+· Использование GROUP BY и агрегатных функций
+· JOIN между таблицами
+
+---
+
+Задание 9: Реализация транзакций
+
+Шаги действий:
+
+1. Создайте метод для добавления студента с курсами в транзакции:
+public static void AddStudentWithCourses(string firstName, string lastName, List<int> courseIds)
+{
+    using (SqlConnection connection = new SqlConnection(connectionString))
+    {
+        connection.Open();
+        SqlTransaction transaction = connection.BeginTransaction();
+        
+        try
+        {
+            // Добавление студента
+            string insertStudent = "INSERT INTO Students (FirstName, LastName) VALUES (@FirstName, @LastName); SELECT SCOPE_IDENTITY();";
+            SqlCommand command = new SqlCommand(insertStudent, connection, transaction);
+            command.Parameters.AddWithValue("@FirstName", firstName);
+            command.Parameters.AddWithValue("@LastName", lastName);
+            
+            int studentId = Convert.ToInt32(command.ExecuteScalar());
+            
+            // Добавление курсов
+            foreach (int courseId in courseIds)
+            {
+08:35
+string insertCourse = "INSERT INTO StudentCourses (StudentID, CourseID) VALUES (@StudentID, @CourseID)";
+                command = new SqlCommand(insertCourse, connection, transaction);
+                command.Parameters.AddWithValue("@StudentID", studentId);
+                command.Parameters.
+
+AddWithValue("@CourseID", courseId);
+                command.ExecuteNonQuery();
+            }
+            
+            transaction.Commit();
+            Console.WriteLine("Студент и курсы успешно добавлены!");
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            Console.WriteLine($"Ошибка: {ex.Message}");
+        }
+    }
+}
+
+Что должно получиться:
+
+· Атомарная операция добавления студента с курсами
+· Откат изменений при ошибке
+· Понимание ACID свойств транзакций
+
+---
+
+Задание 10: Создание простого резервного копирования
+
+Шаги действий:
+
+1. Напишите SQL скрипт для резервного копирования:
+BACKUP DATABASE University 
+TO DISK = 'C:\Backup\University.bak'
+WITH FORMAT,
+MEDIANAME = 'UniversityBackup',
+NAME = 'Full Backup of University';
+
+1. Создайте метод в приложении для выполнения резервного копирования:
+public static void CreateBackup()
+{
+    try
+    {
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            string backupQuery = @"BACKUP DATABASE University 
+                                TO DISK = 'C:\Backup\University.bak'
+                                WITH FORMAT, 
+                                MEDIANAME = 'UniversityBackup', 
+                                NAME = 'Full Backup of University';";
+            
+            SqlCommand command = new SqlCommand(backupQuery, connection);
+            connection.Open();
+            command.ExecuteNonQuery();
+            
+            Console.WriteLine("Резервная копия успешно создана!");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ошибка при создании резервной копии: {ex.Message}");
+    }
+}
+
+Что должно получиться:
+
+· Резервная копия базы данных
+· Обработка ошибок при создании бэкапа
+· Понимание важности резервного копирования
