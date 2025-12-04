@@ -1,0 +1,470 @@
+Татьяна Александровна:
+Задание 11: Создание таблицы сотрудников и департаментов
+
+Шаги действий:
+
+1. В SSMS создайте таблицы:
+CREATE TABLE Departments (
+    DepartmentID int PRIMARY KEY IDENTITY(1,1),
+    DepartmentName nvarchar(100) NOT NULL,
+    Location nvarchar(100)
+);
+
+CREATE TABLE Employees (
+    EmployeeID int PRIMARY KEY IDENTITY(1,1),
+    FirstName nvarchar(50) NOT NULL,
+    LastName nvarchar(50) NOT NULL,
+    Email nvarchar(100) UNIQUE,
+    Phone nvarchar(20),
+    HireDate date DEFAULT GETDATE(),
+    Salary decimal(10,2),
+    DepartmentID int FOREIGN KEY REFERENCES Departments(DepartmentID)
+);
+
+1. Добавьте тестовые данные:
+INSERT INTO Departments (DepartmentName, Location) 
+VALUES 
+('IT', 'Floor 5'),
+('HR', 'Floor 3'),
+('Sales', 'Floor 2');
+
+INSERT INTO Employees (FirstName, LastName, Email, DepartmentID, Salary)
+VALUES
+('John', 'Doe', 'john.doe@company.com', 1, 50000),
+('Jane', 'Smith', 'jane.smith@company.com', 2, 45000);
+
+Что должно получиться:
+
+· Две связанные таблицы
+· Связь один-ко-многим между департаментами и сотрудниками
+· Тестовые данные для работы
+
+---
+
+Задание 12: Создание индексов для оптимизации запросов
+
+Шаги действий:
+
+1. Создайте индексы для часто используемых полей:
+-- Индекс для поиска по фамилии
+CREATE INDEX IX_Employees_LastName ON Employees(LastName);
+
+-- Индекс для поиска по email (уже уникальный, но можно для покрывающего запроса)
+CREATE INDEX IX_Employees_Email ON Employees(Email);
+
+-- Индекс для поиска по департаменту
+CREATE INDEX IX_Employees_DepartmentID ON Employees(DepartmentID);
+
+-- Составной индекс
+CREATE INDEX IX_Employees_NameDepartment ON Employees(FirstName, LastName, DepartmentID);
+
+1. Проверьте использование индексов:
+-- Включите отображение плана выполнения
+SET SHOWPLAN_TEXT ON;
+
+SELECT * FROM Employees WHERE LastName = 'Doe';
+
+Что должно получиться:
+
+· Созданные индексы для ускорения запросов
+· Понимание, когда использовать индексы
+· Проверка плана выполнения запроса
+
+---
+
+Задание 13: Создание представления (View)
+
+Шаги действий:
+
+1. Создайте представление для отображения сотрудников с названиями департаментов:
+CREATE VIEW EmployeeDetails AS
+SELECT 
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    e.Email,
+    e.Salary,
+    e.HireDate,
+    d.DepartmentName,
+    d.Location
+FROM Employees e
+INNER JOIN Departments d ON e.DepartmentID = d.DepartmentID;
+
+1. Используйте представление в запросах:
+-- Простой запрос к представлению
+SELECT * FROM EmployeeDetails WHERE DepartmentName = 'IT';
+
+-- Запрос с агрегацией
+SELECT 
+    DepartmentName,
+    COUNT(*) as EmployeeCount,
+    AVG(Salary) as AverageSalary
+FROM EmployeeDetails
+GROUP BY DepartmentName;
+
+Что должно получиться:
+
+· Представление для упрощения сложных запросов
+· Возможность использовать представление как обычную таблицу
+· Агрегация данных через представление
+
+---
+
+Задание 14: Создание скалярной функции
+
+Шаги действий:
+
+1. Создайте функцию для расчета стажа работы:
+CREATE FUNCTION CalculateExperience(@HireDate DATE)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @Experience INT;
+    SET @Experience = DATEDIFF(YEAR, @HireDate, GETDATE());
+    RETURN @Experience;
+END;
+
+1. Используйте функцию в запросе:
+SELECT 
+    FirstName,
+    LastName,
+    HireDate,
+    dbo.CalculateExperience(HireDate) as ExperienceYears
+FROM Employees;
+
+1. Создайте функцию для форматирования телефона:
+CREATE FUNCTION FormatPhoneNumber(@Phone NVARCHAR(20))
+RETURNS NVARCHAR(20)
+AS
+BEGIN
+    IF LEN(@Phone) = 10
+        RETURN '+7 (' + SUBSTRING(@Phone, 1, 3) + ') ' 
+               + SUBSTRING(@Phone, 4, 3) + '-' 
+               + SUBSTRING(@Phone, 7, 4);
+    RETURN @Phone;
+END;
+
+Что должно получиться:
+
+· Пользовательские скалярные функции
+· Использование функций в SELECT запросах
+· Переиспользуемая бизнес-логика на уровне БД
+
+---
+
+Задание 15: Создание табличной функции
+
+Шаги действий:
+
+1. Создайте функцию для получения сотрудников по департаменту:
+CREATE FUNCTION GetEmployeesByDepartment(@DeptID INT)
+RETURNS TABLE
+AS
+RETURN
+    SELECT 
+        EmployeeID,
+08:25
+FirstName,
+        LastName,
+        Email,
+        Salary
+    FROM Employees
+    WHERE DepartmentID = @DeptID;
+
+1.
+
+Используйте функцию:
+-- Все сотрудники IT отдела (DepartmentID = 1)
+SELECT * FROM dbo.GetEmployeesByDepartment(1);
+
+-- С агрегацией
+SELECT 
+    COUNT(*) as EmployeeCount,
+    AVG(Salary) as AvgSalary
+FROM dbo.GetEmployeesByDepartment(2);
+
+1. Создайте функцию с параметром по умолчанию:
+CREATE FUNCTION GetHighPaidEmployees(@MinSalary DECIMAL(10,2) = 40000)
+RETURNS TABLE
+AS
+RETURN
+    SELECT * FROM Employees WHERE Salary >= @MinSalary;
+
+Что должно получиться:
+
+· Табличные функции для фильтрации данных
+· Использование параметров в функциях
+· Возможность JOIN с результатом функции
+
+---
+
+Задание 16: Создание триггеров
+
+Шаги действий:
+
+1. Создайте таблицу для логов:
+CREATE TABLE EmployeeAudit (
+    AuditID int PRIMARY KEY IDENTITY(1,1),
+    EmployeeID int,
+    ActionType nvarchar(10),
+    ChangedDate datetime DEFAULT GETDATE(),
+    OldSalary decimal(10,2),
+    NewSalary decimal(10,2)
+);
+
+1. Создайте триггер для отслеживания изменений зарплаты:
+CREATE TRIGGER trg_EmployeeSalaryUpdate
+ON Employees
+AFTER UPDATE
+AS
+BEGIN
+    IF UPDATE(Salary)
+    BEGIN
+        INSERT INTO EmployeeAudit (EmployeeID, ActionType, OldSalary, NewSalary)
+        SELECT 
+            i.EmployeeID,
+            'UPDATE',
+            d.Salary,
+            i.Salary
+        FROM inserted i
+        INNER JOIN deleted d ON i.EmployeeID = d.EmployeeID
+        WHERE i.Salary <> d.Salary;
+    END
+END;
+
+1. Создайте триггер для проверки данных:
+CREATE TRIGGER trg_EmployeeInsertUpdate
+ON Employees
+INSTEAD OF INSERT, UPDATE
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE Salary < 0)
+    BEGIN
+        RAISERROR('Salary cannot be negative', 16, 1);
+        RETURN;
+    END
+    
+    -- Если триггер вместо вставки, нужно выполнить вставку
+    INSERT INTO Employees (FirstName, LastName, Email, Salary, DepartmentID)
+    SELECT FirstName, LastName, Email, Salary, DepartmentID
+    FROM inserted;
+END;
+
+Что должно получиться:
+
+· Триггеры для аудита изменений
+· Триггеры для валидации данных
+· Понимание inserted и deleted таблиц
+
+---
+
+Задание 17: Работа с транзакциями и обработка ошибок
+
+Шаги действий:
+
+1. Создайте процедуру с транзакцией:
+CREATE PROCEDURE TransferEmployee
+    @EmployeeID INT,
+    @NewDepartmentID INT,
+    @NewSalary DECIMAL(10,2)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Проверка существования сотрудника
+        IF NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeID = @EmployeeID)
+        BEGIN
+            RAISERROR('Employee not found', 16, 1);
+        END
+        
+        -- Проверка существования департамента
+        IF NOT EXISTS (SELECT 1 FROM Departments WHERE DepartmentID = @NewDepartmentID)
+        BEGIN
+            RAISERROR('Department not found', 16, 1);
+        END
+        
+        -- Обновление данных
+        UPDATE Employees 
+        SET 
+            DepartmentID = @NewDepartmentID,
+            Salary = @NewSalary
+        WHERE EmployeeID = @EmployeeID;
+        
+        -- Логирование
+        INSERT INTO EmployeeAudit (EmployeeID, ActionType, NewSalary)
+        VALUES (@EmployeeID, 'TRANSFER', @NewSalary);
+        
+        COMMIT TRANSACTION;
+        PRINT 'Transfer completed successfully';
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        
+        PRINT 'Error: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+
+1. Протестируйте процедуру:
+EXEC TransferEmployee @EmployeeID = 1, @NewDepartmentID = 3, @NewSalary = 55000;
+
+Что должно получиться:
+
+· Процедура с полной обработкой ошибок
+· Атомарность операций через транзакцию
+· Логирование действий
+
+---
+
+Задание 18: Работа с временными таблицами
+
+Шаги действий:
+
+1. Создайте локальную временную таблицу:
+-- Локальная временная таблица (видна только в текущей сессии)
+CREATE TABLE #TempEmployees (
+    EmployeeID int,
+    FullName nvarchar(100),
+    DepartmentName nvarchar(100)
+);
+
+-- Заполнение временной таблицы
+08:25
+INSERT INTO #TempEmployees
+SELECT 
+    e.EmployeeID,
+    e.FirstName + ' ' + e.LastName as FullName,
+    d.DepartmentName
+FROM Employees e
+INNER JOIN Departments d ON e.DepartmentID = d.DepartmentID;
+
+-- Использование временной таблицы
+SELECT * FROM #TempEmployees WHERE DepartmentName = 'IT';
+
+1. Создайте глобальную временную таблицу:
+-- Глобальная временная таблица (видна всем сессиям)
+CREATE TABLE ##GlobalTemp (
+    ID int IDENTITY(1,1),
+    LogMessage nvarchar(200),
+    LogDate datetime DEFAULT GETDATE()
+);
+
+INSERT INTO ##GlobalTemp (LogMessage) 
+VALUES ('Application started');
+
+1. Используйте табличную переменную:
+DECLARE @DepartmentStats TABLE (
+    DepartmentName nvarchar(100),
+    EmployeeCount int,
+    TotalSalary decimal(15,2)
+);
+
+INSERT INTO @DepartmentStats
+SELECT 
+    d.DepartmentName,
+    COUNT(e.EmployeeID) as EmployeeCount,
+    SUM(e.Salary) as TotalSalary
+FROM Departments d
+LEFT JOIN Employees e ON d.DepartmentID = e.DepartmentID
+GROUP BY d.DepartmentName;
+
+SELECT * FROM @DepartmentStats ORDER BY TotalSalary DESC;
+
+Что должно получиться:
+
+· Умение работать с временными таблицами
+· Понимание разницы между # и ##
+· Использование табличных переменных
+
+---
+
+Задание 19: Создание полнотекстового поиска
+
+Шаги действий:
+
+1. Проверьте установку полнотекстового поиска:
+SELECT FULLTEXTSERVICEPROPERTY('IsFullTextInstalled') as IsFullTextInstalled;
+
+1. Создайте полнотекстовый каталог и индекс:
+-- Создание полнотекстового каталога
+CREATE FULLTEXT CATALOG EmployeeCatalog AS DEFAULT;
+
+-- Создание полнотекстового индекса
+CREATE FULLTEXT INDEX ON Employees (
+    FirstName LANGUAGE 1033,
+    LastName LANGUAGE 1033,
+    Email LANGUAGE 1033
+) KEY INDEX PK__Employee__7AD04F117273C200; -- Укажите имя первичного ключа
+
+1. Используйте полнотекстовый поиск:
+-- Простой полнотекстовый поиск
+SELECT * FROM Employees
+WHERE CONTAINS((FirstName, LastName), '"John"');
+
+-- Поиск с использованием префикса
+SELECT * FROM Employees
+WHERE CONTAINS(Email, '"com*"');
+
+-- Поиск по нескольким словам
+SELECT * FROM Employees
+WHERE CONTAINS((FirstName, LastName), '"Jane" OR "Smith"');
+
+-- FREETEXT для естественного языка
+SELECT * FROM Employees
+WHERE FREETEXT((FirstName, LastName), 'Jane Smith');
+
+Что должно получиться:
+
+· Настроенный полнотекстовый поиск
+· Умение использовать CONTAINS и FREETEXT
+· Поиск по частичным совпадениям
+
+---
+
+Задание 20: Экспорт и импорт данных
+
+Шаги действий:
+
+1. Экспорт данных в CSV:
+-- Экспорт через BCP (Command Line)
+-- В командной строке:
+bcp "SELECT * FROM University.dbo.Employees" queryout "C:\Export\employees.csv" -c -t, -T -S localhost
+
+1. Экспорт через SQL:
+-- Экспорт результатов запроса в файл
+EXEC xp_cmdshell 'bcp "SELECT FirstName, LastName, Email FROM Employees" queryout "C:\Export\emails.csv" -c -t, -T -S localhost'
+
+1. Импорт данных из CSV:
+-- Создание таблицы для импорта
+CREATE TABLE ImportedEmployees (
+    FirstName nvarchar(50),
+    LastName nvarchar(50),
+    Email nvarchar(100),
+    ImportDate datetime DEFAULT GETDATE()
+);
+
+-- Импорт через BULK INSERT
+BULK INSERT ImportedEmployees
+FROM 'C:\Export\emails.csv'
+WITH (
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    FIRSTROW = 1,
+    TABLOCK
+);
+
+-- Проверка импортированных данных
+SELECT * FROM ImportedEmployees;
+
+1. Экспорт через SELECT INTO OUTFILE (альтернативный способ):
+-- Для SQL Server 2017+
+SELECT * FROM Employees
+FOR JSON PATH, ROOT('Employees');
+-- Сохранить результат как JSON файл
+
+Что должно получиться:
+
+· Умение экспортировать данные в CSV
+· Навыки импорта данных из внешних источников
+· Понимание форматов данных для обмена
